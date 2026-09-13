@@ -1,0 +1,6 @@
+{
+  "name": "ShiftSense",
+  "description": "Hospital nurse staffing forecasting and demand-driven schedule management prototype for inpatient medical-surgical units.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
