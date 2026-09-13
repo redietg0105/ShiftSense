@@ -3,11 +3,18 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { createServer as createViteServer } from 'vite';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
+// CSP is left to the app to configure deliberately (it would otherwise block
+// Vite's inline dev-mode HMR client script); the rest of helmet's headers
+// (nosniff, frameguard, HSTS in production, etc.) are safe defaults.
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 
 // Database file path for durable persistence
@@ -25,7 +32,7 @@ interface ServerUser {
   role: 'nurse_manager' | 'charge_nurse' | 'staffing_coordinator';
   email: string;
   unit: string;
-  passwordHash: string; // SHA-256
+  passwordHash: string; // salt:scrypt-derived-key (hex), see hashPassword/verifyPassword
 }
 
 interface ServerSession {
@@ -44,8 +51,45 @@ interface DatabaseSchema {
   unitConfig: any;
 }
 
+// Input validation helpers — used across routes to reject malformed request
+// bodies with a clean 400 instead of letting bad types reach business logic
+// (and potentially throw, or silently corrupt the persisted database).
+function isNonEmptyString(v: unknown): v is string {
+  return typeof v === 'string' && v.trim().length > 0;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_TEXT_FIELD_LEN = 2000;
+
+function safeString(v: unknown, fallback: string): string {
+  const s = typeof v === 'string' ? v : fallback;
+  return s.slice(0, MAX_TEXT_FIELD_LEN);
+}
+
+// Salted scrypt hash, stored as "salt:derivedKey" (both hex).
 function hashPassword(pwd: string): string {
-  return crypto.createHash('sha256').update(pwd).digest('hex');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(pwd, salt, 64).toString('hex');
+  return `${salt}:${derived}`;
+}
+
+// Verifies against the current salted-scrypt format, with a fallback for
+// unsalted SHA-256 hashes written by older versions of this file (so an
+// existing data/shiftsense_db.json doesn't get locked out after this change).
+function verifyPassword(pwd: string, stored: string): boolean {
+  if (!stored) return false;
+
+  if (stored.includes(':')) {
+    const [salt, hashHex] = stored.split(':');
+    const expected = Buffer.from(hashHex, 'hex');
+    const actual = crypto.scryptSync(pwd, salt, expected.length);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  }
+
+  const legacy = crypto.createHash('sha256').update(pwd).digest('hex');
+  const expected = Buffer.from(stored, 'hex');
+  const actual = Buffer.from(legacy, 'hex');
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 }
 
 const DEFAULT_USERS: ServerUser[] = [
@@ -180,23 +224,38 @@ app.get('/api/auth/users', (req, res) => {
 });
 
 // Auth: Login
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
+const DEMO_PASSWORD = 'hospital123';
 
-  if (!email || !password) {
+// Throttle login attempts to slow down credential-stuffing / brute force.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many sign-in attempts. Please wait a few minutes and try again.' },
+});
+
+app.post('/api/auth/login', loginLimiter, (req, res) => {
+  const { email, password } = req.body ?? {};
+
+  if (!isNonEmptyString(email) || !isNonEmptyString(password)) {
     return res.status(400).json({ error: 'Email and password are required' });
+  }
+  if (!EMAIL_RE.test(email) || email.length > 254 || password.length > 512) {
+    return res.status(400).json({ error: 'Please enter a valid email address' });
   }
 
   const user = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid hospital staff credentials' });
-  }
+  // Demo convenience: any seeded account also accepts 'hospital123', but only
+  // outside production, so this never ships as a real-world universal password.
+  const usedDemoPassword = !IS_PRODUCTION && password === DEMO_PASSWORD;
+  const passwordOk = Boolean(user) && (verifyPassword(password, user!.passwordHash) || usedDemoPassword);
 
-  const providedHash = hashPassword(password);
-  // Also accept demo password 'hospital123' for convenience across all accounts
-  if (user.passwordHash !== providedHash && providedHash !== hashPassword('hospital123')) {
-    return res.status(401).json({ error: 'Incorrect password for this staff member' });
+  if (!user || !passwordOk) {
+    // Deliberately identical for "no such account" and "wrong password" so a
+    // caller can't enumerate which emails are valid staff accounts.
+    return res.status(401).json({ error: 'Invalid email or password' });
   }
 
   // Create real cryptographic session token
@@ -250,14 +309,60 @@ app.get('/api/schedules', authMiddleware, (req, res) => {
 });
 
 // Schedules: Save/Update approved schedules (Requires authentication)
-app.post('/api/schedules', authMiddleware, (req: AuthenticatedRequest, res) => {
-  const { schedules, unitConfig } = req.body;
+const APPROVER_ROLES: ServerUser['role'][] = ['nurse_manager', 'charge_nurse'];
 
-  if (!Array.isArray(schedules)) {
-    return res.status(400).json({ error: 'Invalid schedules payload. Must be an array.' });
+app.post('/api/schedules', authMiddleware, (req: AuthenticatedRequest, res) => {
+  const { schedules, unitConfig } = req.body ?? {};
+
+  const isValidScheduleShape =
+    Array.isArray(schedules) &&
+    schedules.every((item: any) => item && typeof item === 'object' && isNonEmptyString(item.date));
+  if (!isValidScheduleShape) {
+    return res.status(400).json({ error: 'Invalid schedules payload. Each entry must be an object with a date.' });
+  }
+  if (unitConfig !== undefined && (typeof unitConfig !== 'object' || unitConfig === null || Array.isArray(unitConfig))) {
+    return res.status(400).json({ error: 'Invalid unitConfig payload. Must be an object.' });
   }
 
-  db.schedules = schedules;
+  const currentUser = req.user!;
+  const canApprove = APPROVER_ROLES.includes(currentUser.role);
+  const existingByDate = new Map((db.schedules || []).map((s: any) => [s.date, s]));
+
+  // The client is trusted for headcount overrides and notes (any signed-in
+  // staff member may propose those), but never for the approval signature:
+  // status/approvedBy/approvedAt are always re-derived here from the
+  // authenticated session so a schedule can't be marked "signed" by a role
+  // that isn't authorized to approve, or signed with a forged name.
+  const sanitizedSchedules = schedules.map((item: any) => {
+    const requestedApproval = item.status === 'approved' || Boolean(item.approvedBy);
+    if (!requestedApproval) {
+      return { ...item, status: item.status, approvedBy: undefined, approvedAt: undefined };
+    }
+
+    if (!canApprove) {
+      // Not authorized to sign off — keep the day at whatever state it was
+      // already persisted in, dropping the unauthorized approval attempt.
+      const existing: any = existingByDate.get(item.date);
+      return {
+        ...item,
+        status: existing?.status ?? 'modified',
+        approvedBy: existing?.approvedBy,
+        approvedAt: existing?.approvedAt,
+      };
+    }
+
+    return {
+      ...item,
+      status: 'approved',
+      approvedBy: currentUser.name,
+      approvedAt:
+        new Date().toLocaleDateString([], { month: 'short', day: 'numeric' }) +
+        ' at ' +
+        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+  });
+
+  db.schedules = sanitizedSchedules;
   if (unitConfig) {
     db.unitConfig = { ...db.unitConfig, ...unitConfig };
   }
@@ -281,9 +386,11 @@ app.get('/api/census/history', authMiddleware, (req, res) => {
 
 // Historical Census: Save/Update historical data (e.g. after editing recent days or regenerating)
 app.post('/api/census/history', authMiddleware, (req, res) => {
-  const { historicalCensus } = req.body;
-  if (!Array.isArray(historicalCensus)) {
-    return res.status(400).json({ error: 'Invalid historicalCensus payload' });
+  const { historicalCensus } = req.body ?? {};
+  const isValidCensusShape =
+    Array.isArray(historicalCensus) && historicalCensus.every((item: any) => item && typeof item === 'object');
+  if (!isValidCensusShape) {
+    return res.status(400).json({ error: 'Invalid historicalCensus payload. Must be an array of objects.' });
   }
 
   db.historicalCensus = historicalCensus;
@@ -305,7 +412,7 @@ app.get('/api/audit', authMiddleware, (req, res) => {
 
 // Audit Logs: Append audit entry
 app.post('/api/audit', authMiddleware, (req: AuthenticatedRequest, res) => {
-  const { action, dateTarget, details } = req.body;
+  const { action, dateTarget, details } = req.body ?? {};
 
   const entry = {
     id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
@@ -316,11 +423,14 @@ app.post('/api/audit', authMiddleware, (req: AuthenticatedRequest, res) => {
       month: 'short',
       day: 'numeric',
     }),
-    action: action || 'Action Authorized',
+    // Coerced to string and length-capped: the audit log is a compliance
+    // record, so it must never store a type other than text, and a client
+    // shouldn't be able to bloat storage with an oversized field.
+    action: safeString(action, 'Action Authorized'),
     userName: req.user?.name || 'Authorized Staff',
     userRole: req.user?.title || 'Staff',
-    dateTarget: dateTarget || 'General',
-    details: details || '',
+    dateTarget: safeString(dateTarget, 'General'),
+    details: safeString(details, ''),
   };
 
   if (!db.auditLogs) db.auditLogs = [];
@@ -351,6 +461,17 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Centralized error handler — must be registered last so it sees errors
+  // thrown anywhere above. Never leaks stack traces or internal details to
+  // the client, regardless of NODE_ENV (Express's own default handler does
+  // include the stack outside production, which is fine in a terminal but
+  // not in an HTTP response).
+  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    console.error('Unhandled server error:', err);
+    if (res.headersSent) return next(err);
+    res.status(500).json({ error: 'Internal server error' });
+  });
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`ShiftSense server running on http://0.0.0.0:${PORT}`);

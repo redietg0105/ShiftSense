@@ -154,9 +154,9 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
     <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 md:p-6" id="manager-approval-workflow">
       {/* Toast notification for persistence confirmation */}
       {saveToast && (
-        <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs animate-fade-in">
+        <div role="status" aria-live="polite" className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs animate-fade-in">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
             <span>{saveToast}</span>
           </div>
           <span className="text-[10px] text-emerald-600 uppercase tracking-wider font-bold">
@@ -333,8 +333,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                     onClick={() => toggleExpand(item.date)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                     title={isExpanded ? 'Collapse Adjuster' : 'Adjust Headcount & Notes'}
+                    aria-label={isExpanded ? `Collapse headcount adjuster for ${item.dayLabel}` : `Adjust headcount and notes for ${item.dayLabel}`}
+                    aria-expanded={isExpanded}
                   >
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    {isExpanded ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
                   </button>
                 </div>
               </div>
@@ -361,18 +363,20 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleAdjustRN(item.date, 'day', -1)}
+                              aria-label={`Decrease Day Shift RN count for ${item.dayLabel}`}
                               className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
-                            <span className="w-8 text-center font-bold text-sm text-slate-900">
+                            <span className="w-8 text-center font-bold text-sm text-slate-900" aria-live="polite">
                               {dayRN}
                             </span>
                             <button
                               onClick={() => handleAdjustRN(item.date, 'day', 1)}
+                              aria-label={`Increase Day Shift RN count for ${item.dayLabel}`}
                               className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           </div>
                         </div>
@@ -382,18 +386,20 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleAdjustCNA(item.date, 'day', -1)}
+                              aria-label={`Decrease Day Shift CNA count for ${item.dayLabel}`}
                               className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
-                            <span className="w-8 text-center font-bold text-sm text-slate-900">
+                            <span className="w-8 text-center font-bold text-sm text-slate-900" aria-live="polite">
                               {dayCNA}
                             </span>
                             <button
                               onClick={() => handleAdjustCNA(item.date, 'day', 1)}
+                              aria-label={`Increase Day Shift CNA count for ${item.dayLabel}`}
                               className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           </div>
                         </div>
@@ -418,18 +424,20 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleAdjustRN(item.date, 'night', -1)}
+                              aria-label={`Decrease Night Shift RN count for ${item.dayLabel}`}
                               className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
-                            <span className="w-8 text-center font-bold text-sm text-slate-900">
+                            <span className="w-8 text-center font-bold text-sm text-slate-900" aria-live="polite">
                               {nightRN}
                             </span>
                             <button
                               onClick={() => handleAdjustRN(item.date, 'night', 1)}
+                              aria-label={`Increase Night Shift RN count for ${item.dayLabel}`}
                               className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           </div>
                         </div>
@@ -439,18 +447,20 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleAdjustCNA(item.date, 'night', -1)}
+                              aria-label={`Decrease Night Shift CNA count for ${item.dayLabel}`}
                               className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
-                            <span className="w-8 text-center font-bold text-sm text-slate-900">
+                            <span className="w-8 text-center font-bold text-sm text-slate-900" aria-live="polite">
                               {nightCNA}
                             </span>
                             <button
                               onClick={() => handleAdjustCNA(item.date, 'night', 1)}
+                              aria-label={`Increase Night Shift CNA count for ${item.dayLabel}`}
                               className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           </div>
                         </div>

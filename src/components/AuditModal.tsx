@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AuditEntry } from '../services/storage';
-import { 
-  History, 
-  X, 
-  ShieldCheck, 
-  Clock, 
-  Download, 
-  FileText 
+import {
+  History,
+  X,
+  ShieldCheck,
+  Clock,
+  Download,
+  FileText
 } from 'lucide-react';
 
 interface AuditModalProps {
@@ -22,10 +22,40 @@ export const AuditModal: React.FC<AuditModalProps> = ({
   logs,
   onExportCSV,
 }) => {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<Element | null>(null);
+
+  // Move focus into the dialog on open, close on Escape, and return focus
+  // to whatever triggered it on close (standard modal dialog behavior).
+  useEffect(() => {
+    if (!isOpen) return;
+
+    triggerRef.current = document.activeElement;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (triggerRef.current instanceof HTMLElement) {
+        triggerRef.current.focus();
+      }
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="audit-modal-title"
+      aria-describedby="audit-modal-description"
+    >
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -34,16 +64,18 @@ export const AuditModal: React.FC<AuditModalProps> = ({
               <History className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 id="audit-modal-title" className="text-base font-bold text-slate-900">
                 Schedule Authorization Audit Trail
               </h3>
-              <p className="text-xs text-slate-500">
+              <p id="audit-modal-description" className="text-xs text-slate-500">
                 Immutable compliance log of schedule reviews, overrides, and manager signatures.
               </p>
             </div>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
+            aria-label="Close audit trail"
             className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />

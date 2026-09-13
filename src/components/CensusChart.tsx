@@ -109,47 +109,49 @@ export const CensusChart: React.FC<CensusChartProps> = ({
         </div>
 
         {/* Timeframe selector */}
-        <div className="inline-flex items-center bg-slate-100 p-1 rounded-lg self-start sm:self-auto text-xs font-medium">
-          <button
-            onClick={() => setTimeframe('7days')}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              timeframe === '7days'
-                ? 'bg-white text-blue-700 shadow-2xs font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            -7d + Forecast
-          </button>
-          <button
-            onClick={() => setTimeframe('14days')}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              timeframe === '14days'
-                ? 'bg-white text-blue-700 shadow-2xs font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            -14d + Forecast
-          </button>
-          <button
-            onClick={() => setTimeframe('30days')}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              timeframe === '30days'
-                ? 'bg-white text-blue-700 shadow-2xs font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            -30d
-          </button>
-          <button
-            onClick={() => setTimeframe('all')}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              timeframe === 'all'
-                ? 'bg-white text-blue-700 shadow-2xs font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            90d History
-          </button>
+        <div className="max-w-full overflow-x-auto self-start sm:self-auto">
+          <div className="inline-flex items-center bg-slate-100 p-1 rounded-lg text-xs font-medium w-max">
+            <button
+              onClick={() => setTimeframe('7days')}
+              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                timeframe === '7days'
+                  ? 'bg-white text-blue-700 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              -7d + Forecast
+            </button>
+            <button
+              onClick={() => setTimeframe('14days')}
+              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                timeframe === '14days'
+                  ? 'bg-white text-blue-700 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              -14d + Forecast
+            </button>
+            <button
+              onClick={() => setTimeframe('30days')}
+              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                timeframe === '30days'
+                  ? 'bg-white text-blue-700 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              -30d
+            </button>
+            <button
+              onClick={() => setTimeframe('all')}
+              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                timeframe === 'all'
+                  ? 'bg-white text-blue-700 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              90d History
+            </button>
+          </div>
         </div>
       </div>
 

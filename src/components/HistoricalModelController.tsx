@@ -96,7 +96,7 @@ export const HistoricalModelController: React.FC<HistoricalModelControllerProps>
         </div>
 
         {/* Live recalculation badge & fast regenerate */}
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={onRegenerateHistoricalData}
             title="Generate new synthetic historical dataset with random variance"
@@ -184,7 +184,7 @@ export const HistoricalModelController: React.FC<HistoricalModelControllerProps>
         </div>
 
         {/* Live Mathematical Telemetry Stats */}
-        <div className="flex items-center space-x-4 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <div className="bg-white px-3 py-1 rounded-md border border-slate-200 shadow-2xs">
             <span className="text-slate-500">90d Baseline: </span>
             <span className="font-semibold text-slate-800">{overallHistoricalMean} pts</span>
@@ -320,6 +320,7 @@ export const HistoricalModelController: React.FC<HistoricalModelControllerProps>
                       }
                       className="w-5 h-5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center transition"
                       title="Decrease actual census by 1"
+                      aria-label={`Decrease actual census for ${record.dayLabel} by 1`}
                     >
                       -
                     </button>
@@ -328,6 +329,7 @@ export const HistoricalModelController: React.FC<HistoricalModelControllerProps>
                       min="15"
                       max={unitConfig.bedCapacity}
                       value={currentVal}
+                      aria-label={`Actual census for ${record.dayLabel}`}
                       onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
                         if (!isNaN(val)) {
@@ -348,6 +350,7 @@ export const HistoricalModelController: React.FC<HistoricalModelControllerProps>
                       }
                       className="w-5 h-5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center transition"
                       title="Increase actual census by 1"
+                      aria-label={`Increase actual census for ${record.dayLabel} by 1`}
                     >
                       +
                     </button>

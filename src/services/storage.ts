@@ -112,6 +112,18 @@ export function getAuditLogs(): AuditEntry[] {
   }
 }
 
+// Neutralizes CSV/spreadsheet formula injection: a cell whose text starts
+// with =, +, -, @ (or a tab/CR) is interpreted as a formula by Excel/Sheets
+// when the file is opened, which is dangerous for any field that holds
+// free-typed user input (e.g. Manager Notes). Prefixing with a single quote
+// forces spreadsheet apps to treat it as plain text while keeping the
+// visible content essentially unchanged.
+function csvSafe(value: string): string {
+  const needsGuard = /^[=+\-@\t\r]/.test(value);
+  const guarded = needsGuard ? `'${value}` : value;
+  return `"${guarded.replace(/"/g, '""')}"`;
+}
+
 export function exportSchedulesToCSV(schedules: DaySchedule[], unitName: string): void {
   const headers = [
     'Date',
@@ -130,19 +142,19 @@ export function exportSchedulesToCSV(schedules: DaySchedule[], unitName: string)
   ];
 
   const rows = schedules.map((s) => [
-    `"${s.date}"`,
-    `"${s.dayOfWeek}"`,
+    csvSafe(s.date),
+    csvSafe(s.dayOfWeek),
     s.projectedCensus,
-    `"${s.status.toUpperCase()}"`,
+    csvSafe(s.status.toUpperCase()),
     s.dayShift.recommendedRN,
     s.dayShift.managerOverrideRN ?? s.dayShift.recommendedRN,
     s.dayShift.managerOverrideCNA ?? s.dayShift.recommendedCNA,
     s.nightShift.recommendedRN,
     s.nightShift.managerOverrideRN ?? s.nightShift.recommendedRN,
     s.nightShift.managerOverrideCNA ?? s.nightShift.recommendedCNA,
-    `"${s.approvedBy || 'Unapproved'}"`,
-    `"${s.approvedAt || '-'}"`,
-    `"${(s.managerNotes || '').replace(/"/g, '""')}"`,
+    csvSafe(s.approvedBy || 'Unapproved'),
+    csvSafe(s.approvedAt || '-'),
+    csvSafe(s.managerNotes || ''),
   ]);
 
   const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');

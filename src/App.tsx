@@ -459,7 +459,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased overflow-x-hidden">
       {/* Top Clinical Header */}
       <Header
         user={currentUser}
@@ -495,63 +495,84 @@ export default function App() {
 
         {/* Navigation Tabs Bar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-          <div className="inline-flex items-center p-1 bg-slate-200/80 rounded-xl text-xs font-medium space-x-1">
-            <button
-              id="tab-all-views"
-              onClick={() => setActiveTab('all')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === 'all'
-                  ? 'bg-white text-blue-700 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+          <div className="min-w-0 max-w-full overflow-x-auto">
+            <div
+              className="inline-flex items-center p-1 bg-slate-200/80 rounded-xl text-xs font-medium gap-1 w-max"
+              role="tablist"
+              aria-label="Unit dashboard views"
             >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Complete Unit Console</span>
-            </button>
+              <button
+                id="tab-all-views"
+                role="tab"
+                aria-selected={activeTab === 'all'}
+                aria-controls="section-census-forecast section-staffing-recommendations section-approval-workflow"
+                onClick={() => setActiveTab('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 whitespace-nowrap shrink-0 ${
+                  activeTab === 'all'
+                    ? 'bg-white text-blue-700 shadow-xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Complete Unit Console</span>
+              </button>
 
-            <button
-              id="tab-census-forecast"
-              onClick={() => setActiveTab('chart')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === 'chart'
-                  ? 'bg-white text-blue-700 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Census Forecast Chart</span>
-            </button>
+              <button
+                id="tab-census-forecast"
+                role="tab"
+                aria-selected={activeTab === 'chart'}
+                aria-controls="section-census-forecast"
+                onClick={() => setActiveTab('chart')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 whitespace-nowrap shrink-0 ${
+                  activeTab === 'chart'
+                    ? 'bg-white text-blue-700 shadow-xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Census Forecast Chart</span>
+              </button>
 
-            <button
-              id="tab-ratio-recommendations"
-              onClick={() => setActiveTab('recommendation')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === 'recommendation'
-                  ? 'bg-white text-blue-700 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Ratio & Demand Model</span>
-            </button>
+              <button
+                id="tab-ratio-recommendations"
+                role="tab"
+                aria-selected={activeTab === 'recommendation'}
+                aria-controls="section-staffing-recommendations"
+                onClick={() => setActiveTab('recommendation')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 whitespace-nowrap shrink-0 ${
+                  activeTab === 'recommendation'
+                    ? 'bg-white text-blue-700 shadow-xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Ratio & Demand Model</span>
+              </button>
 
-            <button
-              id="tab-approval-workflow"
-              onClick={() => setActiveTab('approval')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === 'approval'
-                  ? 'bg-white text-blue-700 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Manager Approvals</span>
-              {approvedDaysCount < totalDaysCount ? (
-                <span className="ml-1 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              ) : (
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 ml-1" />
-              )}
-            </button>
+              <button
+                id="tab-approval-workflow"
+                role="tab"
+                aria-selected={activeTab === 'approval'}
+                aria-controls="section-approval-workflow"
+                onClick={() => setActiveTab('approval')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 whitespace-nowrap shrink-0 ${
+                  activeTab === 'approval'
+                    ? 'bg-white text-blue-700 shadow-xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Manager Approvals</span>
+                {approvedDaysCount < totalDaysCount ? (
+                  <span className="ml-1 w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 ml-1 shrink-0" aria-hidden="true" />
+                )}
+                <span className="sr-only">
+                  {approvedDaysCount < totalDaysCount ? ` — ${approvedDaysCount} of ${totalDaysCount} days approved` : ' — all days approved'}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Quick status text */}
@@ -565,7 +586,7 @@ export default function App() {
         <div className="space-y-6">
           {/* Feature 1: Census Forecast Chart */}
           {(activeTab === 'all' || activeTab === 'chart') && (
-            <section id="section-census-forecast">
+            <section id="section-census-forecast" role="tabpanel" aria-labelledby="tab-all-views tab-census-forecast" tabIndex={0}>
               <CensusChart
                 historyData={history}
                 forecastData={forecast}
@@ -576,7 +597,7 @@ export default function App() {
 
           {/* Feature 2: Staffing Recommendation Panel */}
           {(activeTab === 'all' || activeTab === 'recommendation') && (
-            <section id="section-staffing-recommendations">
+            <section id="section-staffing-recommendations" role="tabpanel" aria-labelledby="tab-all-views tab-ratio-recommendations" tabIndex={0}>
               <StaffingRecommendationPanel
                 forecastData={forecast}
                 unitConfig={unitConfig}
@@ -588,7 +609,7 @@ export default function App() {
 
           {/* Feature 3 & 5: Manager Review, Override & Approval Workflow */}
           {(activeTab === 'all' || activeTab === 'approval') && (
-            <section id="section-approval-workflow">
+            <section id="section-approval-workflow" role="tabpanel" aria-labelledby="tab-all-views tab-approval-workflow" tabIndex={0}>
               <ScheduleApprovalWorkflow
                 schedules={schedules}
                 currentUser={currentUser}

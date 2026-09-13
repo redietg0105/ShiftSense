@@ -47,11 +47,11 @@ export const Header: React.FC<HeaderProps> = ({
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="font-bold text-xl tracking-tight text-slate-900">ShiftSense</span>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  <span className="hidden sm:inline-flex text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
                     Clinical Unit v1.0
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 font-medium">
+                <p className="hidden sm:block text-xs text-slate-500 font-medium">
                   Demand-Driven Nurse Staffing Forecasting
                 </p>
               </div>
@@ -84,9 +84,10 @@ export const Header: React.FC<HeaderProps> = ({
               id="export-csv-button"
               onClick={onExportCSV}
               title="Export Staffing Roster to Excel/CSV"
+              aria-label="Export staffing roster to CSV"
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors shadow-2xs cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <Download className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
               <span className="hidden sm:inline">Export CSV</span>
             </button>
 
@@ -95,9 +96,10 @@ export const Header: React.FC<HeaderProps> = ({
               id="audit-log-button"
               onClick={onOpenAuditLog}
               title="View Approval Audit Trail"
+              aria-label="View approval audit trail"
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors shadow-2xs cursor-pointer"
             >
-              <History className="w-3.5 h-3.5 text-slate-500" />
+              <History className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
               <span className="hidden sm:inline">Audit Trail</span>
             </button>
 
@@ -121,9 +123,10 @@ export const Header: React.FC<HeaderProps> = ({
                 id="logout-button"
                 onClick={onLogout}
                 title="Sign out of ShiftSense"
+                aria-label="Sign out of ShiftSense"
                 className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
