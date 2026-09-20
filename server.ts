@@ -16,6 +16,12 @@ const PORT = Number(process.env.PORT) || 3000;
 const FORCE_DEV = process.argv.includes('--dev');
 const IS_PRODUCTION = !FORCE_DEV && process.env.NODE_ENV === 'production';
 
+// In production the app sits behind a single reverse proxy (e.g. Cloud Run's
+// front end). Trusting that one hop makes req.ip the real client address, so the
+// login rate limiter counts each visitor separately instead of lumping everyone
+// together under the proxy's IP.
+if (IS_PRODUCTION) app.set('trust proxy', 1);
+
 // CSP is left to the app to configure deliberately (it would otherwise block
 // Vite's inline dev-mode HMR client script); the rest of helmet's headers
 // (nosniff, frameguard, HSTS in production, etc.) are safe defaults.
