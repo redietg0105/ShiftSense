@@ -28,7 +28,11 @@ npm run build
 npm start
 ```
 
-`npm run build` builds the Vite frontend into `dist/` and bundles `server.ts` into `dist/server.cjs`; `npm start` runs that bundle in production mode (serving the built static frontend instead of using Vite's dev middleware).
+`npm run build` builds the Vite frontend into `dist/` and bundles `server.ts` into `dist/server.cjs`. `npm start` runs that bundle, but it only serves the built frontend when `NODE_ENV=production` is set (PowerShell: `$env:NODE_ENV="production"; npm start`); otherwise it starts Vite's dev middleware.
+
+`npm run dev` always runs in development mode, even if `NODE_ENV=production` is set in your shell.
+
+If `http://localhost:3000` shows a "not found" page instead of ShiftSense, another program is probably answering on port 3000. The server now prints a clear message when the port is taken; run it on another port with `$env:PORT=3001; npm run dev`.
 
 ## Data persistence
 

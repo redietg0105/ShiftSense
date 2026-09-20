@@ -9,7 +9,12 @@ import { createServer as createViteServer } from 'vite';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// `npm run dev` passes --dev so a NODE_ENV=production inherited from the shell
+// (e.g. left over from testing a production build) can't silently flip the dev
+// server into static-file mode, where it would look for a dist/ that doesn't exist.
+const FORCE_DEV = process.argv.includes('--dev');
+const IS_PRODUCTION = !FORCE_DEV && process.env.NODE_ENV === 'production';
 
 // CSP is left to the app to configure deliberately (it would otherwise block
 // Vite's inline dev-mode HMR client script); the rest of helmet's headers
@@ -448,7 +453,11 @@ app.post('/api/audit', authMiddleware, (req: AuthenticatedRequest, res) => {
 ========================================================================= */
 
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  if (!IS_PRODUCTION) {
+    // Vite and the React plugin key their dev behavior (fast refresh, etc.) off
+    // NODE_ENV, so normalize it when dev mode was requested explicitly.
+    if (FORCE_DEV) process.env.NODE_ENV = 'development';
+
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -456,9 +465,25 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    const indexHtml = path.join(distPath, 'index.html');
+    if (!fs.existsSync(indexHtml)) {
+      console.error(
+        `Production mode is active but ${indexHtml} was not found.\n` +
+          'Run "npm run build" first, or use "npm run dev" for local development.'
+      );
+    }
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      if (!fs.existsSync(indexHtml)) {
+        return res
+          .status(503)
+          .type('text/plain')
+          .send(
+            'ShiftSense is running in production mode, but no build was found (dist/index.html is missing).\n' +
+              'Run "npm run build", or start the development server with "npm run dev".'
+          );
+      }
+      res.sendFile(indexHtml);
     });
   }
 
@@ -467,15 +492,41 @@ async function startServer() {
   // the client, regardless of NODE_ENV (Express's own default handler does
   // include the stack outside production, which is fine in a terminal but
   // not in an HTTP response).
-  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.error('Unhandled server error:', err);
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) return next(err);
+
+    // Errors raised by Express middleware carry an HTTP status (malformed JSON
+    // -> 400, oversized body -> 413, missing file -> 404). Keep those as the
+    // client errors they are with a fixed, generic message; only genuinely
+    // unexpected failures become a 500.
+    const status = Number(err?.status ?? err?.statusCode);
+    if (Number.isInteger(status) && status >= 400 && status < 500) {
+      const message = status === 404 ? 'Not found' : status === 413 ? 'Request body too large' : 'Bad request';
+      return res.status(status).json({ error: message });
+    }
+
+    console.error('Unhandled server error:', err);
     res.status(500).json({ error: 'Internal server error' });
   });
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`ShiftSense server running on http://0.0.0.0:${PORT}`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    const mode = IS_PRODUCTION ? 'production, serving dist/' : 'development, Vite dev middleware';
+    console.log(`ShiftSense server running (${mode}) at http://localhost:${PORT}`);
     console.log(`Database persistence file active at: ${DB_FILE}`);
+  });
+
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(
+        `\nPort ${PORT} is already in use, so ShiftSense could not start.\n` +
+          `Whatever is answering at http://localhost:${PORT} right now is NOT this server ` +
+          '(a common cause of an unexpected "page not found").\n' +
+          'Stop that program, or run on another port: PowerShell  $env:PORT=3001; npm run dev\n'
+      );
+    } else {
+      console.error('ShiftSense failed to start:', err);
+    }
+    process.exit(1);
   });
 }
 
