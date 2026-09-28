@@ -37,3 +37,7 @@ If `http://localhost:3000` shows a "not found" page instead of ShiftSense, anoth
 ## Data persistence
 
 Runtime data (users, sessions, schedules, audit logs) is persisted to a local JSON file at `data/shiftsense_db.json`, created automatically on first run. This directory is gitignored since it's local runtime state, not source code.
+
+## Deployment
+
+Deployed on Google Cloud Run (project `shiftsense-deploy`, service `shiftsense-app`, region `us-central1`). Traffic is set to always follow the latest ready revision, so a new `gcloud run deploy --source .` from this folder goes live immediately with no separate traffic-switch step.
