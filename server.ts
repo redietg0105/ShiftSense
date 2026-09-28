@@ -8,7 +8,11 @@ import rateLimit from 'express-rate-limit';
 import { createServer as createViteServer } from 'vite';
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+// 8080 matches the default port AWS App Runner (and most managed Node
+// hosts) expect when no PORT is supplied; App Runner always sets PORT
+// itself, but keeping the fallback aligned avoids surprises in any other
+// environment that doesn't.
+const PORT = Number(process.env.PORT) || 8080;
 
 // `npm run dev` passes --dev so a NODE_ENV=production inherited from the shell
 // (e.g. left over from testing a production build) can't silently flip the dev
@@ -28,12 +32,24 @@ if (IS_PRODUCTION) app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 
-// Database file path for durable persistence
+// Database file path for durable persistence. data/ is gitignored (it's
+// runtime state, not source), so on a freshly cloned/deployed server — e.g.
+// a new App Runner instance — this directory won't exist yet and must be
+// created on startup rather than assumed to be there.
 const DB_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'shiftsense_db.json');
 
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.error(
+    `Could not create the data directory at ${DB_DIR}. The app needs a writable working directory to persist ` +
+      'schedules, sessions, and audit logs.',
+    err
+  );
+  process.exit(1);
 }
 
 interface ServerUser {
@@ -163,7 +179,14 @@ function initDatabase(): DatabaseSchema {
     },
   };
 
-  fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
+  } catch (err) {
+    // Non-fatal: the app can still run for this process's lifetime on the
+    // in-memory defaults even if the initial write fails; saveDatabase()
+    // will keep retrying on every subsequent change.
+    console.error(`Could not write the initial database file at ${DB_FILE}. Continuing with in-memory data.`, err);
+  }
   return initialDb;
 }
 
