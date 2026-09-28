@@ -25,6 +25,13 @@ export const UnitMetricsBar: React.FC<UnitMetricsBarProps> = ({
   const totalDischarges = forecastData.reduce((acc, curr) => acc + (curr.projectedDischarges || 0), 0);
   const netTurnover = totalAdmissions - totalDischarges;
 
+  // e.g. "Sep 21 - Sep 27" — derived from the actual forecast window instead
+  // of a fixed label, so it stays correct as the underlying dates move.
+  const forecastRangeLabel =
+    forecastData.length > 0
+      ? `${forecastData[0].dayLabel.split(', ')[1]} - ${forecastData[forecastData.length - 1].dayLabel.split(', ')[1]}`
+      : '—';
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 mb-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -56,7 +63,7 @@ export const UnitMetricsBar: React.FC<UnitMetricsBarProps> = ({
             <Calendar className="w-3.5 h-3.5 text-blue-600" />
             <div>
               <span className="text-slate-500">Forecast Horizon: </span>
-              <strong className="text-slate-800">Next 7 Days (Sep 4 - Sep 10)</strong>
+              <strong className="text-slate-800">Next {forecastData.length || 7} Days ({forecastRangeLabel})</strong>
             </div>
           </div>
 

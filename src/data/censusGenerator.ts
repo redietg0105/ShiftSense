@@ -42,8 +42,10 @@ export function generateSyntheticHistoricalCensus(
   capacity = 36,
   seed = 42
 ): CensusRecord[] {
-  // Reference anchor: September 4, 2026 (Friday)
-  const baseDate = new Date(2026, 8, 4);
+  // Anchor to today, so history always ends on "now" and the forecast
+  // computed from it (see computeStatisticalForecastFromHistory, which
+  // anchors on this array's last record) starts the day after.
+  const baseDate = new Date();
   baseDate.setHours(0, 0, 0, 0);
 
   const records: CensusRecord[] = [];
