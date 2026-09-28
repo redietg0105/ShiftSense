@@ -52,4 +52,4 @@ Runtime data (users, sessions, schedules, audit logs) is persisted to a local JS
 
 ## Deployment
 
-Deployed on Google Cloud Run (project `shiftsense-deploy`, service `shiftsense-app`, region `us-central1`). Traffic is set to always follow the latest ready revision, so a new `gcloud run deploy --source .` from this folder goes live immediately with no separate traffic-switch step.
+Deployed on Google Cloud Run (project `shiftsense-deploy`, service `shiftsense-app`, region `us-central1`). A Cloud Build trigger builds and deploys a new revision on every push to `main`; traffic is set to always follow the latest ready revision, so a push goes live with no separate deploy or traffic-switch step.
