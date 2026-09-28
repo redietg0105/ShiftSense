@@ -2,6 +2,12 @@
 
 Hospital nurse staffing forecasting and demand-driven schedule management prototype for inpatient medical-surgical units.
 
+## Live Demo
+
+https://shiftsense-app-54721179143.us-central1.run.app
+
+Deployed on Google Cloud Run, with automatic deploys from the `main` branch via Cloud Build.
+
 This app was originally exported from Google AI Studio's Build mode. It runs as a single Node/Express process (`server.ts`) that hosts both the API and the Vite-built React frontend on one port — there is no separate frontend/backend server to run.
 
 ## Run Locally
@@ -17,9 +23,15 @@ This app was originally exported from Google AI Studio's Build mode. It runs as 
    ```
    npm run dev
    ```
-4. Open http://localhost:3000
+4. Open http://localhost:3000 — this only works while `npm run dev` is running in a terminal; closing it takes the page down.
 
-The demo login screen lists three seeded staff accounts; any of their passwords work, or use `hospital123` for all of them.
+The demo login screen lists three seeded staff accounts. In local development, `hospital123` works for all of them; that shortcut is disabled in production, so the live demo above needs each account's real password:
+
+| Role | Email | Password |
+|---|---|---|
+| Nurse Manager | `sjenkins@metrohealth.org` | `nurse123` |
+| Charge Nurse | `dmiller@metrohealth.org` | `charge123` |
+| Staffing Coordinator | `atorres@metrohealth.org` | `staff123` |
 
 ## Production build
 
