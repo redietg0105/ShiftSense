@@ -339,9 +339,16 @@ app.get('/api/schedules', authMiddleware, (req, res) => {
 });
 
 // Schedules: Save/Update approved schedules (Requires authentication)
-const APPROVER_ROLES: ServerUser['role'][] = ['nurse_manager', 'charge_nurse'];
+// Only the Nurse Manager may approve or override a schedule — Charge Nurse and
+// Staffing Coordinator can view (GET) but not mutate (POST).
+const APPROVER_ROLES: ServerUser['role'][] = ['nurse_manager'];
 
 app.post('/api/schedules', authMiddleware, (req: AuthenticatedRequest, res) => {
+  const currentUser = req.user!;
+  if (!APPROVER_ROLES.includes(currentUser.role)) {
+    return res.status(403).json({ error: 'Only the Nurse Manager can approve or override schedules.' });
+  }
+
   const { schedules, unitConfig } = req.body ?? {};
 
   const isValidScheduleShape =
@@ -354,31 +361,15 @@ app.post('/api/schedules', authMiddleware, (req: AuthenticatedRequest, res) => {
     return res.status(400).json({ error: 'Invalid unitConfig payload. Must be an object.' });
   }
 
-  const currentUser = req.user!;
-  const canApprove = APPROVER_ROLES.includes(currentUser.role);
-  const existingByDate = new Map((db.schedules || []).map((s: any) => [s.date, s]));
-
-  // The client is trusted for headcount overrides and notes (any signed-in
-  // staff member may propose those), but never for the approval signature:
-  // status/approvedBy/approvedAt are always re-derived here from the
-  // authenticated session so a schedule can't be marked "signed" by a role
-  // that isn't authorized to approve, or signed with a forged name.
+  // The client is trusted for headcount overrides and notes (only a Nurse
+  // Manager reaches this point at all, per the role check above), but never
+  // for the approval signature: status/approvedBy/approvedAt are always
+  // re-derived here from the authenticated session so a schedule can't be
+  // signed with a forged name.
   const sanitizedSchedules = schedules.map((item: any) => {
     const requestedApproval = item.status === 'approved' || Boolean(item.approvedBy);
     if (!requestedApproval) {
       return { ...item, status: item.status, approvedBy: undefined, approvedAt: undefined };
-    }
-
-    if (!canApprove) {
-      // Not authorized to sign off — keep the day at whatever state it was
-      // already persisted in, dropping the unauthorized approval attempt.
-      const existing: any = existingByDate.get(item.date);
-      return {
-        ...item,
-        status: existing?.status ?? 'modified',
-        approvedBy: existing?.approvedBy,
-        approvedAt: existing?.approvedAt,
-      };
     }
 
     return {

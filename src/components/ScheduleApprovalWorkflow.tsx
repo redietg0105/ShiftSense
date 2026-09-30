@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { DaySchedule, User } from '../types';
-import { 
-  CheckCircle2, 
-  ShieldCheck, 
-  AlertCircle, 
-  Edit3, 
-  RotateCcw, 
-  Save, 
-  Check, 
-  Sparkles, 
-  Clock, 
-  UserCheck, 
-  ChevronDown, 
+import {
+  CheckCircle2,
+  ShieldCheck,
+  AlertCircle,
+  Edit3,
+  RotateCcw,
+  Save,
+  Check,
+  Sparkles,
+  Clock,
+  UserCheck,
+  ChevronDown,
   ChevronUp,
   FileCheck,
   CalendarDays,
   Plus,
-  Minus
+  Minus,
+  Lock
 } from 'lucide-react';
 
 interface ScheduleApprovalWorkflowProps {
@@ -39,7 +40,9 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [saveToast, setSaveToast] = useState<string | null>(null);
 
-  const canApprove = currentUser.role === 'nurse_manager' || currentUser.role === 'charge_nurse';
+  // Only the Nurse Manager may approve or override a schedule; the server
+  // enforces the same restriction independently (POST /api/schedules).
+  const isManager = currentUser.role === 'nurse_manager';
 
   const showToastMessage = (msg: string) => {
     setSaveToast(msg);
@@ -53,6 +56,7 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
     shift: 'day' | 'night',
     delta: number
   ) => {
+    if (!isManager) return;
     const next = schedules.map((item) => {
       if (item.date !== date) return item;
 
@@ -97,6 +101,7 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
     shift: 'day' | 'night',
     delta: number
   ) => {
+    if (!isManager) return;
     const next = schedules.map((item) => {
       if (item.date !== date) return item;
 
@@ -133,6 +138,7 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
   };
 
   const handleNotesChange = (date: string, notes: string) => {
+    if (!isManager) return;
     const next = schedules.map((item) => {
       if (item.date !== date) return item;
       return {
@@ -181,35 +187,45 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
-          <button
-            onClick={() => {
-              onResetToRecommended();
-              showToastMessage('All days reset to statistical forecast recommendations.');
-            }}
-            id="reset-schedules-button"
-            className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors cursor-pointer"
-            title="Reset manual overrides back to mathematical ratios"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-            <span>Reset Overrides</span>
-          </button>
+          {isManager ? (
+            <>
+              <button
+                onClick={() => {
+                  onResetToRecommended();
+                  showToastMessage('All days reset to statistical forecast recommendations.');
+                }}
+                id="reset-schedules-button"
+                className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors cursor-pointer"
+                title="Reset manual overrides back to mathematical ratios"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                <span>Reset Overrides</span>
+              </button>
 
-          {canApprove && (
-            <button
-              onClick={() => {
-                onApproveAll();
-                showToastMessage(`All 7 days approved by ${currentUser.name} and saved!`);
-              }}
-              id="approve-all-button"
-              className={`inline-flex items-center space-x-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer ${
-                allApproved
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              <button
+                onClick={() => {
+                  onApproveAll();
+                  showToastMessage(`All 7 days approved by ${currentUser.name} and saved!`);
+                }}
+                id="approve-all-button"
+                className={`inline-flex items-center space-x-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer ${
+                  allApproved
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                <Check className="w-4 h-4" />
+                <span>{allApproved ? 'Re-Approve Entire Week' : 'Approve All 7 Days'}</span>
+              </button>
+            </>
+          ) : (
+            <span
+              id="manager-only-notice"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200 rounded-lg"
             >
-              <Check className="w-4 h-4" />
-              <span>{allApproved ? 'Re-Approve Entire Week' : 'Approve All 7 Days'}</span>
-            </button>
+              <Lock className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+              <span>Only the Nurse Manager can approve schedules.</span>
+            </span>
           )}
         </div>
       </div>
@@ -310,7 +326,7 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                   </div>
 
                   {/* Approve / Re-Approve button */}
-                  {canApprove && (
+                  {isManager && (
                     <button
                       onClick={() => {
                         onSingleScheduleApprove(item.date);
@@ -344,6 +360,12 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
               {/* Detailed Override Editor (Expanded) */}
               {isExpanded && (
                 <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 animate-fade-in text-xs">
+                  {!isManager && (
+                    <div className="mb-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium flex items-center space-x-1.5">
+                      <Lock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      <span>Only the Nurse Manager can approve schedules. You can view this breakdown, but adjustments are disabled.</span>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Day Shift Controls */}
                     <div className="bg-white p-3.5 rounded-lg border border-slate-200">
@@ -363,8 +385,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleAdjustRN(item.date, 'day', -1)}
+                              disabled={!isManager}
                               aria-label={`Decrease Day Shift RN count for ${item.dayLabel}`}
-                              className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
+                              title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                              className={`w-7 h-7 rounded-md border flex items-center justify-center font-bold transition-colors ${isManager ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer' : 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                             >
                               <Minus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
@@ -373,8 +397,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                             </span>
                             <button
                               onClick={() => handleAdjustRN(item.date, 'day', 1)}
+                              disabled={!isManager}
                               aria-label={`Increase Day Shift RN count for ${item.dayLabel}`}
-                              className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
+                              title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                              className={`w-7 h-7 rounded-md border flex items-center justify-center font-bold transition-colors ${isManager ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer' : 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                             >
                               <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
@@ -386,8 +412,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleAdjustCNA(item.date, 'day', -1)}
+                              disabled={!isManager}
                               aria-label={`Decrease Day Shift CNA count for ${item.dayLabel}`}
-                              className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
+                              title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                              className={`w-7 h-7 rounded-md border flex items-center justify-center font-bold transition-colors ${isManager ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer' : 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                             >
                               <Minus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
@@ -396,8 +424,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                             </span>
                             <button
                               onClick={() => handleAdjustCNA(item.date, 'day', 1)}
+                              disabled={!isManager}
                               aria-label={`Increase Day Shift CNA count for ${item.dayLabel}`}
-                              className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
+                              title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                              className={`w-7 h-7 rounded-md border flex items-center justify-center font-bold transition-colors ${isManager ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer' : 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                             >
                               <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
@@ -424,8 +454,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleAdjustRN(item.date, 'night', -1)}
+                              disabled={!isManager}
                               aria-label={`Decrease Night Shift RN count for ${item.dayLabel}`}
-                              className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
+                              title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                              className={`w-7 h-7 rounded-md border flex items-center justify-center font-bold transition-colors ${isManager ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer' : 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                             >
                               <Minus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
@@ -434,8 +466,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                             </span>
                             <button
                               onClick={() => handleAdjustRN(item.date, 'night', 1)}
+                              disabled={!isManager}
                               aria-label={`Increase Night Shift RN count for ${item.dayLabel}`}
-                              className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
+                              title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                              className={`w-7 h-7 rounded-md border flex items-center justify-center font-bold transition-colors ${isManager ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer' : 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                             >
                               <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
@@ -447,8 +481,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleAdjustCNA(item.date, 'night', -1)}
+                              disabled={!isManager}
                               aria-label={`Decrease Night Shift CNA count for ${item.dayLabel}`}
-                              className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
+                              title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                              className={`w-7 h-7 rounded-md border flex items-center justify-center font-bold transition-colors ${isManager ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer' : 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                             >
                               <Minus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
@@ -457,8 +493,10 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                             </span>
                             <button
                               onClick={() => handleAdjustCNA(item.date, 'night', 1)}
+                              disabled={!isManager}
                               aria-label={`Increase Night Shift CNA count for ${item.dayLabel}`}
-                              className="w-7 h-7 rounded-md border border-slate-300 bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
+                              title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                              className={`w-7 h-7 rounded-md border flex items-center justify-center font-bold transition-colors ${isManager ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer' : 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                             >
                               <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
@@ -478,7 +516,9 @@ export const ScheduleApprovalWorkflow: React.FC<ScheduleApprovalWorkflowProps> =
                       placeholder="e.g. Added 1 Day RN due to 3 anticipated post-op knee replacements requiring frequent neurovascular checks."
                       value={item.managerNotes || ''}
                       onChange={(e) => handleNotesChange(item.date, e.target.value)}
-                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                      disabled={!isManager}
+                      title={!isManager ? 'Only the Nurse Manager can approve schedules.' : undefined}
+                      className={`w-full px-3 py-1.5 border rounded-lg text-xs focus:outline-hidden focus:ring-1 focus:ring-blue-500 ${isManager ? 'border-slate-300 bg-white' : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'}`}
                     />
                   </div>
                 </div>
