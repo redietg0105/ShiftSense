@@ -51,7 +51,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [isCustom, setIsCustom] = useState<boolean>(false);
   const [customName, setCustomName] = useState<string>('');
   const [customRole, setCustomRole] = useState<UserRole>('nurse_manager');
-  const [password, setPassword] = useState<string>('hospital123');
+  const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,23 +73,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           return;
         }
         const customEmail = customName.toLowerCase().replace(/\s+/g, '.') + '@metrohealth.org';
-        // Attempt backend login, or register session
-        try {
-          const authRes = await api.login(customEmail, password || 'hospital123');
-          onLogin(authRes.user);
-        } catch {
-          // If custom user isn't pre-seeded, sign in as nurse manager session on server
-          const authRes = await api.login('sjenkins@metrohealth.org', 'hospital123');
-          const customUser: User = {
-            ...authRes.user,
-            id: 'user_custom_' + Date.now(),
-            name: customName.trim(),
-            title: customRole === 'nurse_manager' ? 'Nurse Manager' : customRole === 'charge_nurse' ? 'Charge Nurse' : 'Staffing Specialist',
-            role: customRole,
-            email: customEmail,
-          };
-          onLogin(customUser);
-        }
+        const authRes = await api.login(customEmail, password);
+        onLogin(authRes.user);
       } else {
         const found = PRESET_USERS.find((u) => u.id === selectedPresetId);
         if (found) {
@@ -246,12 +231,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password (default: hospital123)"
+                placeholder="Enter password"
                 className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-              <p className="text-[11px] text-slate-500 mt-1">
-                Preset password: <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded font-mono">hospital123</code> (verified via server session auth)
-              </p>
             </div>
 
             {error && (

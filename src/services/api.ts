@@ -36,7 +36,7 @@ export const api = {
     }
   },
 
-  async login(email: string, password = 'hospital123'): Promise<{ user: User; token: string }> {
+  async login(email: string, password: string): Promise<{ user: User; token: string }> {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

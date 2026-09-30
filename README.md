@@ -25,7 +25,7 @@ This app was originally exported from Google AI Studio's Build mode. It runs as 
    ```
 4. Open http://localhost:3000 — this only works while `npm run dev` is running in a terminal; closing it takes the page down.
 
-The demo login screen lists three seeded staff accounts. In local development, `hospital123` works for all of them; that shortcut is disabled in production, so the live demo above needs each account's real password:
+The demo login screen lists three seeded staff accounts. Each one needs its own real password — there's no shared or default password, in local development or in production:
 
 | Role | Email | Password |
 |---|---|---|

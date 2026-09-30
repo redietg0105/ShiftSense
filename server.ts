@@ -258,7 +258,6 @@ app.get('/api/auth/users', (req, res) => {
 });
 
 // Auth: Login
-const DEMO_PASSWORD = 'hospital123';
 
 // Throttle login attempts to slow down credential-stuffing / brute force.
 const loginLimiter = rateLimit({
@@ -281,10 +280,7 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
 
   const user = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
-  // Demo convenience: any seeded account also accepts 'hospital123', but only
-  // outside production, so this never ships as a real-world universal password.
-  const usedDemoPassword = !IS_PRODUCTION && password === DEMO_PASSWORD;
-  const passwordOk = Boolean(user) && (verifyPassword(password, user!.passwordHash) || usedDemoPassword);
+  const passwordOk = Boolean(user) && verifyPassword(password, user!.passwordHash);
 
   if (!user || !passwordOk) {
     // Deliberately identical for "no such account" and "wrong password" so a
